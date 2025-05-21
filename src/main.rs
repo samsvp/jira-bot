@@ -1,6 +1,7 @@
 use reqwest::Client;
 use std::error::Error;
-use serde::Serialize;
+use serde::{Serialize,Deserialize};
+use std::fs;
 
 #[derive(Serialize)]
 struct Issue {
@@ -8,9 +9,9 @@ struct Issue {
     body: String,
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize)]
 struct GithubVariables {
-    github_token: String,
+    token: String,
 }
 
 #[tokio::main]
@@ -20,12 +21,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
         body: "All cool.".to_string(),
     };
 
+    let contents = fs::read_to_string("env.toml")
+        .expect("Should have been able to read the file");
+
+    let vars: GithubVariables = toml::from_str(&contents).unwrap();
+
     let url = format!("https://api.github.com/repos/{}/{}/issues", "samsvp", "jira-bot");
     let client = Client::new();
     let res = client
         .post(url)
         .header("Accept", "application/vnd.github+json")
-        .header("Authorization", format!("Bearer {}", token))
+        .header("Authorization", format!("Bearer {}", vars.token))
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header("User-Agent", "reqwest")
         .body(serde_json::to_string(&issue)?)
