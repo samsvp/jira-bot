@@ -55,7 +55,6 @@ impl Jira {
                 .await?
                 .text()
                 .await?;
-        println!("Body is {}", body);
         Ok(serde_json::from_str(&body)?)
     }
 
