@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use serde_json::json;
-use reqwest::{Client, RequestBuilder, Response};
+use reqwest::{Client, RequestBuilder};
 use anyhow::Result;
 
 #[derive(Deserialize)]
@@ -22,6 +22,24 @@ pub struct Jira {
 }
 
 impl Jira {
+    fn create_document(description: String) -> serde_json::Value {
+        json!({
+            "content": [
+                {
+                  "content": [
+                    {
+                      "text": description,
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+            "type": "doc",
+            "version": 1
+        })
+    }
+
     fn add_headers(&self, builder: RequestBuilder) -> RequestBuilder {
         builder
             .header("Accept", "application/json")
@@ -31,13 +49,14 @@ impl Jira {
     async fn make_post_request(&self, url: String, payload: String) -> Result<serde_json::Value> {
         let body =
             self.add_headers(self.client.post(url))
+                .header("Content-Type", "application/json")
                 .body(payload)
                 .send()
                 .await?
                 .text()
                 .await?;
         println!("Body is {}", body);
-        Ok(serde_json::from_str(&body).unwrap())
+        Ok(serde_json::from_str(&body)?)
     }
 
     async fn make_get_request(&self, url: String) -> Result<serde_json::Value> {
@@ -71,12 +90,10 @@ impl Jira {
                 "project": {
                     "id": "10000"
                 },
-                "issue_type": {
-                    "id": "10000"
+                "issuetype": {
+                    "id": "10001"
                 },
-                "status": {
-                    "description": issue_description
-                }
+                "description": Self::create_document(issue_description)
             }
         });
         let payload_str = serde_json::to_string(&payload).unwrap();

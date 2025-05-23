@@ -41,7 +41,6 @@ async fn main() -> Result<()> {
         client: Client::new(),
     };
     let response = jira_client.get_issues().await?;
-    println!("{}", serde_json::to_string_pretty(&response).unwrap());
     let v = jira_client.create_issue("Test issue".to_string(), "test description".to_string()).await;
     match v {
         Ok(res) => println!("POST: {}", res),
