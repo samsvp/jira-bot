@@ -11,7 +11,7 @@ pub struct JiraUserData {
 }
 
 impl JiraUserData {
-    pub fn url(&self, path: String) -> String {
+    pub fn url(&self, path: &str) -> String {
         format!("https://{}.atlassian.net/rest/api/3/{}", self.project, path)
     }
 }
@@ -22,7 +22,7 @@ pub struct Jira {
 }
 
 impl Jira {
-    fn create_document(description: String) -> serde_json::Value {
+    fn create_document(description: &str) -> serde_json::Value {
         json!({
             "content": [
                 {
@@ -70,19 +70,19 @@ impl Jira {
     }
 
     pub async fn get_issues(&self) -> Result<serde_json::Value> {
-        let url = self.user.url("search".to_string());
+        let url = self.user.url("search");
         self.make_get_request(url).await
     }
 
     pub async fn get_projects(&self) -> Result<serde_json::Value> {
-        let url = self.user.url("project".to_string());
+        let url = self.user.url("project");
         self.make_get_request(url).await
     }
 
     pub async fn create_issue(
         &self,
-        summary: String,
-        issue_description: String,
+        summary: &str,
+        issue_description: &str,
     ) -> Result<serde_json::Value> {
         let payload = json!({
             "fields": {
@@ -97,7 +97,7 @@ impl Jira {
             }
         });
         let payload_str = serde_json::to_string(&payload).unwrap();
-        let url = self.user.url("issue".to_string());
+        let url = self.user.url("issue");
         self.make_post_request(url, payload_str).await
     }
 }
