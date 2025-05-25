@@ -1,8 +1,6 @@
-pub mod jira;
-pub mod github;
+pub mod apis;
 
-use jira::jira::{Jira,JiraUserData};
-use github::github::{Github, GithubUserData, Issue};
+use crate::apis::{jira,github};
 use reqwest::Client;
 use serde::Deserialize;
 use anyhow::Result;
@@ -10,13 +8,13 @@ use std::fs;
 
 #[derive(Deserialize)]
 struct Variables {
-    github: GithubUserData,
-    jira: JiraUserData,
+    github: github::UserData,
+    jira: jira::UserData,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let issue = Issue {
+    let issue = github::Issue {
         title: "Rust test".to_string(),
         body: "All cool.".to_string(),
     };
@@ -25,21 +23,12 @@ async fn main() -> Result<()> {
         .expect("Should have been able to read the file");
 
     let vars: Variables = serde_json::from_str(&contents)?;
+    let client = Client::new();
 
-
-    let github_client = Github {
-        user: vars.github,
-        client: Client::new(),
-    };
-    let res = github_client.create_issue("jira-bot", issue).await;
+    let res = github::create_issue(&vars.github, &client, "jira-bot", issue).await;
     println!("{:?}", res);
 
-    let jira_client = Jira {
-        user: vars.jira,
-        client: Client::new(),
-    };
-
-    let res = jira_client.create_issue("Test issue", "test description").await;
+    let res = jira::create_issue(&vars.jira, &client, "Test issue", "test description").await;
     println!("{:?}", res);
 
     Ok(())
