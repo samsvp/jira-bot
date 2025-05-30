@@ -1,6 +1,7 @@
 pub mod apis;
 
 use crate::apis::{jira,github};
+use apis::openai;
 use reqwest::Client;
 use serde::Deserialize;
 use anyhow::Result;
@@ -10,6 +11,7 @@ use std::fs;
 struct Variables {
     github: github::UserData,
     jira: jira::UserData,
+    openai: openai::UserData,
 }
 
 #[tokio::main]
@@ -25,11 +27,21 @@ async fn main() -> Result<()> {
     let vars: Variables = serde_json::from_str(&contents)?;
     let client = Client::new();
 
+    /**
     let res = github::create_issue(&vars.github, &client, "jira-bot", issue).await;
     println!("{:?}", res);
 
     let res = jira::create_issue(&vars.jira, &client, "Test issue", "test description").await;
     println!("{:?}", res);
+    */
+
+    let res = openai::create_story(&vars.openai, &client, "Crie uma story de usuário para: Tela de usuários (gerente): adicionar usuário").await;
+    match res {
+        Ok(r) =>
+            println!("{}",  serde_json::to_string_pretty(&r).unwrap()),
+        Err(e) =>
+            println!("{:?}", e)
+    };
 
     Ok(())
 }
