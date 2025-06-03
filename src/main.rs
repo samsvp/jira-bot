@@ -3,9 +3,15 @@ pub mod interface;
 
 use crate::apis::{jira,github};
 use apis::openai;
-use crossterm::event;
+use crossterm::event::DisableMouseCapture;
+use crossterm::terminal::{self, disable_raw_mode, LeaveAlternateScreen, EnterAlternateScreen};
+use crossterm::{event, terminal::enable_raw_mode};
 use interface::app::App;
-use ratatui::{DefaultTerminal, Frame};
+use ratatui::prelude::{Backend, CrosstermBackend};
+use ratatui::{DefaultTerminal, Frame, Terminal};
+use ratatui::crossterm::event::EnableMouseCapture;
+use ratatui::crossterm::execute;
+use std::io;
 use reqwest::Client;
 use serde::Deserialize;
 use anyhow::Result;
@@ -18,17 +24,14 @@ struct Variables {
     openai: openai::UserData,
 }
 
-fn render(frame: &mut Frame) {
-    frame.render_widget("hello world", frame.area());
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool> {
+    loop {
+        terminal.draw(|f| ui(f, app))?;
+    }
+    Ok(true)
 }
 
-fn run(mut terminal: DefaultTerminal) -> Result<()> {
-    loop {
-        terminal.draw(render)?;
-        if matches!(event::read()?, event::Event::Key(_)) {
-            break Ok(());
-        }
-    }
+pub fn ui(frame: &mut Frame, app: &App) {
 }
 
 #[tokio::main]
@@ -61,5 +64,22 @@ async fn main() -> Result<()> {
 
     Ok(())
     */
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    let mut app = App::new();
+    let res = run_app(&mut terminal, &mut app);
+
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture,
+    );
+    terminal.show_cursor()?;
+    res;
     Ok(())
 }
