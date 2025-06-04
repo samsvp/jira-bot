@@ -3,10 +3,10 @@ pub mod interface;
 
 use crate::apis::{jira,github};
 use apis::openai;
-use crossterm::event::DisableMouseCapture;
+use crossterm::event::{DisableMouseCapture, Event, KeyCode};
 use crossterm::terminal::{self, disable_raw_mode, LeaveAlternateScreen, EnterAlternateScreen};
 use crossterm::{event, terminal::enable_raw_mode};
-use interface::app::App;
+use interface::app::{App, CurrentScreen, CurrentlyEditing};
 use ratatui::prelude::{Backend, CrosstermBackend};
 use ratatui::{DefaultTerminal, Frame, Terminal};
 use ratatui::crossterm::event::EnableMouseCapture;
@@ -24,14 +24,89 @@ struct Variables {
     openai: openai::UserData,
 }
 
+pub fn ui(frame: &mut Frame, app: &App) {
+}
+
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool> {
     loop {
         terminal.draw(|f| ui(f, app))?;
+        if let Event::Key(key) = event::read()? {
+            if key.kind == event::KeyEventKind::Release {
+                continue;
+            }
+            match app.current_screen {
+                CurrentScreen::Main => match key.code {
+                    KeyCode::Char('e') => {
+                        app.current_screen = CurrentScreen::Editing;
+                        app.currently_editing = Some(CurrentlyEditing::Key);
+                    }
+                    KeyCode::Char('q') => {
+                        app.current_screen = CurrentScreen::Exiting;
+                    }
+                    _ => {}
+                },
+                CurrentScreen::Exiting => match key.code {
+                    KeyCode::Char('y') => {
+                        return Ok(true);
+                    }
+                    KeyCode::Char('n') => {
+                        return Ok(false);
+                    }
+                    _ => {}
+                },
+                CurrentScreen::Editing if key.kind == event::KeyEventKind::Press => {
+                    match key.code {
+                        KeyCode::Enter => {
+                            if let Some(editing) = &app.currently_editing {
+                                match editing {
+                                    CurrentlyEditing::Key => {
+                                        app.currently_editing = Some(CurrentlyEditing::Value);
+                                    }
+                                    CurrentlyEditing::Value => {
+                                        app.save_key_value();
+                                        app.current_screen = CurrentScreen::Main;
+                                    }
+                                }
+                            }
+                        }
+                        KeyCode::Backspace => {
+                            if let Some(editing) = &app.currently_editing {
+                                match editing {
+                                    CurrentlyEditing::Key => {
+                                        app.key_input.pop();
+                                    }
+                                    CurrentlyEditing::Value => {
+                                        app.value_input.pop();
+                                    }
+                                }
+                            }
+                        }
+                        KeyCode::Esc => {
+                            app.current_screen = CurrentScreen::Main;
+                            app.currently_editing = None;
+                        }
+                        KeyCode::Tab => {
+                            app.toggle_editing();
+                        }
+                        KeyCode::Char(value) => {
+                            if let Some(editing) = &app.currently_editing {
+                                match editing {
+                                    CurrentlyEditing::Key => {
+                                        app.key_input.push(value);
+                                    }
+                                    CurrentlyEditing::Value => {
+                                        app.value_input.push(value);
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                },
+                _ => {}
+            }
+        }
     }
-    Ok(true)
-}
-
-pub fn ui(frame: &mut Frame, app: &App) {
 }
 
 #[tokio::main]
