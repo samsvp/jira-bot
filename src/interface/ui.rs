@@ -1,7 +1,7 @@
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
+use ratatui::widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap};
 use ratatui::Frame;
 
 use super::app::{App, CurrentScreen, CurrentlyEditing};
@@ -11,7 +11,7 @@ fn centered_rect(percent_x: u16, percent_y: u16, rect: Rect) -> Rect {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y / 2),
+            Constraint::Percentage(percent_y),
             Constraint::Percentage((100 - percent_y) / 2),
         ])
         .split(rect);
@@ -20,7 +20,7 @@ fn centered_rect(percent_x: u16, percent_y: u16, rect: Rect) -> Rect {
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x / 2),
+            Constraint::Percentage(percent_x),
             Constraint::Percentage((100 - percent_x) / 2),
         ])
         .split(popup_layout[1])[1] // return the middle section
@@ -133,7 +133,7 @@ pub fn ui(frame: &mut Frame, app: &App) {
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
             .split(area);
 
-                let mut key_block = Block::default().title("Key").borders(Borders::ALL);
+        let mut key_block = Block::default().title("Key").borders(Borders::ALL);
         let mut value_block = Block::default().title("Value").borders(Borders::ALL);
 
         let active_style = Style::default().bg(Color::LightYellow).fg(Color::Black);
@@ -151,6 +151,22 @@ pub fn ui(frame: &mut Frame, app: &App) {
     }
 
     if let CurrentScreen::Exiting = app.current_screen {
+        frame.render_widget(Clear, frame.area());
+        let popup_block = Block::default()
+            .title("Y/N")
+            .borders(Borders::NONE)
+            .style(Style::default().bg(Color::DarkGray));
 
+        let exit_text = Text::styled(
+            "Would you like to output the buffer as json? (y/n)",
+            Style::default().fg(Color::Red),
+        );
+
+        let exit_paragraph = Paragraph::new(exit_text)
+            .block(popup_block)
+            .wrap(Wrap {trim: false});
+
+        let area = centered_rect(60, 25, frame.area());
+        frame.render_widget(exit_paragraph, area);
     }
 }

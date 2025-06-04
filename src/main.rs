@@ -7,6 +7,7 @@ use crossterm::event::{DisableMouseCapture, Event, KeyCode};
 use crossterm::terminal::{self, disable_raw_mode, LeaveAlternateScreen, EnterAlternateScreen};
 use crossterm::{event, terminal::enable_raw_mode};
 use interface::app::{App, CurrentScreen, CurrentlyEditing};
+use interface::ui;
 use ratatui::prelude::{Backend, CrosstermBackend};
 use ratatui::{DefaultTerminal, Frame, Terminal};
 use ratatui::crossterm::event::EnableMouseCapture;
@@ -24,12 +25,9 @@ struct Variables {
     openai: openai::UserData,
 }
 
-pub fn ui(frame: &mut Frame, app: &App) {
-}
-
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> Result<bool> {
     loop {
-        terminal.draw(|f| ui(f, app))?;
+        terminal.draw(|f| ui::ui(f, app))?;
         if let Event::Key(key) = event::read()? {
             if key.kind == event::KeyEventKind::Release {
                 continue;
