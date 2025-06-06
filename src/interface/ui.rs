@@ -1,10 +1,10 @@
-use ratatui::layout::{self, Constraint, Direction, Layout, Rect};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style, Stylize};
-use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap};
+use ratatui::text::Text;
+use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
 
-use super::app::{App, Mode};
+use super::app::{App, Mode, Selected};
 
 fn create_popup_layout(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     // Cut the given rectangle into three vertical pieces
@@ -35,16 +35,16 @@ fn create_title(
     layout: Rect,
     frame: &mut Frame,
 ) {
-        let title = Paragraph::new(
-            Text::styled(
-                text,
-                Style::default().fg(color),
-            ),
-        )
-            .block(running_section)
-            .centered();
+    let title = Paragraph::new(
+        Text::styled(
+            text,
+            Style::default().fg(color),
+        ),
+    )
+        .block(running_section)
+        .centered();
 
-        frame.render_widget(title, layout);
+    frame.render_widget(title, layout);
 }
 
 pub fn ui(frame: &mut Frame, app: &App) {
@@ -68,15 +68,66 @@ pub fn ui(frame: &mut Frame, app: &App) {
     };
 
     // set footer and header
-    match app.mode {
+    match &app.mode {
         Mode::Main => {
+            let next_mode = match &app.selected {
+                Selected::Answer => "prompt",
+                Selected::Prompt => "answer",
+            };
+
             create_title("Scrum Master", Color::Green, create_section(None), layout[0], frame);
-            create_title("Press q to quit", Color::Blue, create_section(None), layout[2], frame);
+            create_title(
+                &format!("Commands: [Tab] {next_mode} | [i]nsert | [s]end | [q]uit"),
+                Color::Blue,
+                create_section(None),
+                layout[2],
+                frame,
+            );
         }
         Mode::Exiting => {
             let area = create_popup_layout(65, 10, frame.area());
             create_title("Quit? [y]es : [n]o", Color::Red, create_section(Some(Color::DarkGray)), area, frame);
         }
+        Mode::Chat => {
+            match app.selected {
+                Selected::Prompt => {
+                    create_title("Scrum Master - Insert Mode - Prompt", Color::Green, create_section(None), layout[0], frame);
+                    create_title("Commands: [Esc] quit", Color::Blue, create_section(None), layout[2], frame);
+                }
+                Selected::Answer => {
+                    create_title("Scrum Master - Insert Mode - Answer", Color::Green, create_section(None), layout[0], frame);
+                    create_title("Commands: [Esc] quit", Color::Blue, create_section(None), layout[2], frame);
+                }
+            };
+        }
         _ => {}
     };
+
+    let p = 90;
+    let main_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - p) / 2),
+            Constraint::Percentage(p),
+            Constraint::Percentage((100 - p) / 2),
+        ])
+        .split(layout[1])[1];
+
+    let prompt_area = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage(30),
+            Constraint::Percentage(70),
+        ])
+        .split(main_layout);
+
+    let mut prompt_block = create_section(None);
+    let mut answer_block = create_section(None);
+    match app.selected {
+        Selected::Prompt => prompt_block = prompt_block.fg(Color::LightYellow),
+        Selected::Answer => answer_block = answer_block.fg(Color::LightYellow),
+    }
+
+    create_title(&app.chat.prompt, Color::White, prompt_block, prompt_area[0], frame);
+    create_title(&app.chat.answer, Color::White, answer_block, prompt_area[1], frame);
 }

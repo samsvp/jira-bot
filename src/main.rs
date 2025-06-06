@@ -6,8 +6,8 @@ use apis::openai;
 use crossterm::event::{DisableMouseCapture, Event, KeyCode};
 use crossterm::terminal::{self, disable_raw_mode, LeaveAlternateScreen, EnterAlternateScreen};
 use crossterm::{event, terminal::enable_raw_mode};
-use interface::app::{App, Mode};
-use interface::ui;
+use interface::app::{App, Chat, Mode, Selected};
+use interface::{input, ui};
 use ratatui::prelude::{Backend, CrosstermBackend};
 use ratatui::{DefaultTerminal, Frame, Terminal};
 use ratatui::crossterm::event::EnableMouseCapture;
@@ -65,25 +65,8 @@ async fn main() -> Result<()> {
     loop {
         terminal.draw(|frame| ui::ui(frame, &app))?;
         if let Event::Key(key) = event::read()? {
-            if key.kind == event::KeyEventKind::Release {
-                continue;
-            }
-
-            match app.mode {
-                Mode::Main => match key.code {
-                    KeyCode::Char('q') => {
-                        app.mode = Mode::Exiting;
-                    }
-                    _ => {}
-                },
-                Mode::Exiting => match key.code {
-                    KeyCode::Char('y') => break,
-                    KeyCode::Char('n') => {
-                        app.mode = Mode::Main;
-                    }
-                    _ => {}
-                },
-                _ => {}
+            if input::handle_input(&key, &mut app) {
+                break;
             }
         }
     }
