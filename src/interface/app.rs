@@ -1,7 +1,14 @@
 #[derive(Default,Clone)]
+pub struct ChatText {
+    pub text: String,
+    pub lines: u16,
+    pub current_scroll: u16,
+}
+
+#[derive(Default,Clone)]
 pub struct Chat {
-    pub prompt: String,
-    pub answer: String,
+    pub prompt: ChatText,
+    pub answer: ChatText,
 }
 
 pub enum Selected {

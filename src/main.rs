@@ -63,9 +63,9 @@ async fn main() -> Result<()> {
 
     let mut app = App::new();
     loop {
-        terminal.draw(|frame| ui::ui(frame, &app))?;
+        terminal.draw(|frame| ui::ui(frame, &mut app))?;
         if let Event::Key(key) = event::read()? {
-            if input::handle_input(&key, &mut app) {
+            if input::handle_input(&key, terminal.size()?.width, &mut app) {
                 break;
             }
         }

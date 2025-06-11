@@ -1,10 +1,10 @@
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style, Stylize};
 use ratatui::text::Text;
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, Wrap};
 use ratatui::Frame;
 
-use super::app::{App, Mode, Selected};
+use super::app::{App, ChatText, Mode, Selected};
 
 fn create_popup_layout(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     // Cut the given rectangle into three vertical pieces
@@ -45,6 +45,40 @@ fn create_title(
         .centered();
 
     frame.render_widget(title, layout);
+}
+
+fn create_chat(
+    chat: &ChatText,
+    color: Color,
+    running_section: Block,
+    layout: Rect,
+    frame: &mut Frame,
+) {
+    let p = Paragraph::new(
+        Text::styled(
+            &chat.text,
+            Style::default().fg(color),
+        ),
+    )
+        .block(running_section.clone())
+        .wrap( Wrap { trim: true } )
+        .scroll((chat.current_scroll, 0));
+
+    let inner_area = running_section.inner(layout);
+    let max_lines = inner_area.height as usize;
+    frame.render_widget(p.scroll((chat.current_scroll, 0)), layout);
+
+    let total_lines = chat.text.lines().count();
+    frame.render_stateful_widget(
+        Scrollbar::default()
+            .orientation(ScrollbarOrientation::VerticalRight)
+            .begin_symbol(Some("↑"))
+            .end_symbol(Some("↓")),
+        layout,
+        &mut ScrollbarState::new(total_lines)
+            .position(chat.current_scroll as usize)
+            .viewport_content_length(max_lines),
+    );
 }
 
 pub fn ui(frame: &mut Frame, app: &App) {
@@ -128,6 +162,6 @@ pub fn ui(frame: &mut Frame, app: &App) {
         Selected::Answer => answer_block = answer_block.fg(Color::LightYellow),
     }
 
-    create_title(&app.chat.prompt, Color::White, prompt_block, prompt_area[0], frame);
-    create_title(&app.chat.answer, Color::White, answer_block, prompt_area[1], frame);
+    create_chat(&app.chat.prompt, Color::White, prompt_block, prompt_area[0], frame);
+    create_chat(&app.chat.answer, Color::White, answer_block, prompt_area[1], frame);
 }
